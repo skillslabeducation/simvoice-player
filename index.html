@@ -1,8 +1,62 @@
 <!doctype html>
-<html>
-<body>
-  <elevenlabs-convai agent-id="agent_8901keadvetcf4kvs1gqkvamj89e"></elevenlabs-convai>
-  <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SimVoice Player</title>
+</head>
+
+<body style="margin:0;padding:24px;font-family:system-ui;">
+  <div id="status">Initialisiere…</div>
+  <div id="mount"></div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const mount = document.getElementById("mount");
+
+    // sessionId aus URL holen
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session");
+
+    if (!sessionId) {
+      statusEl.textContent = "Fehler: Keine Session-ID in der URL.";
+      throw new Error("Missing sessionId");
+    }
+
+    async function start() {
+      statusEl.textContent = "Hole Zugriff…";
+
+      const resp = await fetch(
+        "https://www.skillslab-education.de/_functions/getSignedUrl",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId })
+        }
+      );
+
+      const data = await resp.json();
+
+      if (!resp.ok || !data.signedUrl) {
+        statusEl.textContent = "Fehler beim Zugriff: " + (data.error || resp.status);
+        return;
+      }
+
+      statusEl.textContent = "Starte Simulation…";
+
+      const el = document.createElement("elevenlabs-convai");
+      el.setAttribute("signed-url", data.signedUrl);
+      el.setAttribute("variant", "expanded");
+      mount.appendChild(el);
+
+      const s = document.createElement("script");
+      s.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+      s.async = true;
+      s.type = "text/javascript";
+      document.body.appendChild(s);
+    }
+
+    start();
+  </script>
 </body>
 </html>
-<!-- pages-trigger -->

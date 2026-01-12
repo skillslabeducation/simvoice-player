@@ -3,60 +3,145 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
   <title>SimVoice Player</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 18px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    .card { border: 1px solid #ddd; border-radius: 14px; padding: 16px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    input { flex: 1; min-width: 320px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; }
+    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #111; background: #111; color: #fff; cursor: pointer; }
+    button.secondary { background: #fff; color: #111; }
+    .muted { color: #666; font-size: 14px; }
+    pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow: auto; }
+    #mount { margin-top: 14px; }
+  </style>
 </head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2 style="margin:0 0 6px 0;">SimVoice Player</h2>
+      <div class="muted">Startet ElevenLabs über eine Signed URL (geholt von skillslab-education.de). API-Key bleibt serverseitig.</div>
 
-<body style="margin:0;padding:24px;font-family:system-ui;">
-  <div id="status">Initialisiere…</div>
-  <div id="mount"></div>
+      <div class="row" style="margin-top:12px;">
+        <input id="agentId" placeholder="agent_..." />
+        <button id="startBtn">Mikro aktivieren & starten</button>
+        <button id="reconnectBtn" class="secondary">Reconnect</button>
+      </div>
+
+      <div id="status" class="muted" style="margin-top: 10px;"></div>
+
+      <div id="mount"></div>
+
+      <details style="margin-top:14px;">
+        <summary>Debug</summary>
+        <pre id="debug"></pre>
+      </details>
+    </div>
+  </div>
 
   <script>
+    // === Konfiguration ===
+    const WIX_SIGNED_URL_BASE =
+      "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl?agent_id=";
+
+    const WIDGET_SCRIPT_SRC =
+      "https://unpkg.com/@elevenlabs/convai-widget-embed";
+
+    // === UI ===
+    const qs = new URLSearchParams(location.search);
+    const agentFromUrl = qs.get("agent_id") || qs.get("agentId") || "agent_8901keadvetcf4kvs1gqkvamj89e";
+
+    const agentInput = document.getElementById("agentId");
+    const startBtn = document.getElementById("startBtn");
+    const reconnectBtn = document.getElementById("reconnectBtn");
     const statusEl = document.getElementById("status");
+    const debugEl = document.getElementById("debug");
     const mount = document.getElementById("mount");
 
-    // sessionId aus URL holen
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session");
+    agentInput.value = agentFromUrl;
 
-    if (!sessionId) {
-      statusEl.textContent = "Fehler: Keine Session-ID in der URL.";
-      throw new Error("Missing sessionId");
+    function setStatus(msg) { statusEl.textContent = msg; }
+    function setDebug(obj) { debugEl.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); }
+
+    async function requestMicPermission() {
+      // Muss durch User-Klick ausgelöst werden – Browser-Sicherheitsregel
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
     }
 
-    async function start() {
-      statusEl.textContent = "Hole Zugriff…";
+    function loadWidgetScriptOnce() {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector('script[data-elevenlabs-widget="1"]')) return resolve();
+        const s = document.createElement("script");
+        s.src = WIDGET_SCRIPT_SRC;
+        s.async = true;
+        s.type = "text/javascript";
+        s.dataset.elevenlabsWidget = "1";
+        s.onload = resolve;
+        s.onerror = () => reject(new Error("Widget Script konnte nicht geladen werden"));
+        document.body.appendChild(s);
+      });
+    }
 
-      const resp = await fetch(
-        "https://www.skillslab-education.de/_functions/getSignedUrl",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId })
-        }
-      );
+    async function fetchSignedUrl(agentId) {
+      const url = WIX_SIGNED_URL_BASE + encodeURIComponent(agentId);
+      const res = await fetch(url, { cache: "no-store" });
 
-      const data = await resp.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
-      if (!resp.ok || !data.signedUrl) {
-        statusEl.textContent = "Fehler beim Zugriff: " + (data.error || resp.status);
-        return;
+      if (!res.ok || !data?.signed_url) {
+        throw new Error(`Signed URL failed (${res.status}): ` + (data?.data?.detail?.message || data?.error || text));
       }
-
-      statusEl.textContent = "Starte Simulation…";
-
-      const el = document.createElement("elevenlabs-convai");
-      el.setAttribute("signed-url", data.signedUrl);
-      el.setAttribute("variant", "expanded");
-      mount.appendChild(el);
-
-      const s = document.createElement("script");
-      s.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
-      s.async = true;
-      s.type = "text/javascript";
-      document.body.appendChild(s);
+      return data.signed_url;
     }
 
-    start();
+    async function mountWidgetWithSignedUrl(signedUrl) {
+      mount.innerHTML = "";
+      const el = document.createElement("elevenlabs-convai");
+      el.setAttribute("signed-url", signedUrl);
+      el.setAttribute("variant", "expanded"); // optional
+      mount.appendChild(el);
+    }
+
+    async function startFlow({ isReconnect = false } = {}) {
+      const agentId = agentInput.value.trim();
+      if (!agentId) return setStatus("Fehlt: agent_id");
+
+      startBtn.disabled = true;
+      reconnectBtn.disabled = true;
+
+      try {
+        setStatus(isReconnect ? "Reconnect: hole neue Signed URL …" : "Fordere Mikrofon-Berechtigung an …");
+        setDebug({ step: "start", agentId });
+
+        // Bei Reconnect muss nicht zwingend nochmal permission prompt kommen
+        if (!isReconnect) await requestMicPermission();
+
+        setStatus("Hole Signed URL …");
+        const signedUrl = await fetchSignedUrl(agentId);
+        setDebug({ step: "signed_url", signedUrl });
+
+        setStatus("Lade Widget …");
+        await loadWidgetScriptOnce();
+
+        await mountWidgetWithSignedUrl(signedUrl);
+        setStatus("Läuft. (Signed URL läuft irgendwann ab → Reconnect nutzen)");
+      } catch (e) {
+        console.error(e);
+        setStatus("Fehler: " + (e?.message || String(e)));
+        setDebug(String(e));
+      } finally {
+        startBtn.disabled = false;
+        reconnectBtn.disabled = false;
+      }
+    }
+
+    startBtn.addEventListener("click", () => startFlow({ isReconnect: false }));
+    reconnectBtn.addEventListener("click", () => startFlow({ isReconnect: true }));
   </script>
 </body>
 </html>

@@ -4,71 +4,59 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <title>SimVoice Player</title>
+  <title>SimVoice</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 18px; }
-    .wrap { max-width: 860px; margin: 0 auto; }
-    .card { border: 1px solid #ddd; border-radius: 14px; padding: 16px; }
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    input { flex: 1; min-width: 320px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; }
-    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #111; background: #111; color: #fff; cursor: pointer; }
-    button.secondary { background: #fff; color: #111; }
-    .muted { color: #666; font-size: 14px; }
-    pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow: auto; }
-    #mount { margin-top: 14px; }
+    html, body { margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #mount { padding: 12px; }
+
+    /* Minimaler “ein Klick nötig” Layer */
+    #unlock {
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+    }
+    #unlock button{
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #111;
+      background: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #status {
+      color:#666; font-size: 14px; padding: 8px 12px;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h2 style="margin:0 0 6px 0;">SimVoice Player</h2>
-      <div class="muted">Startet ElevenLabs über eine Signed URL (geholt von skillslab-education.de). API-Key bleibt serverseitig.</div>
+  <div id="status">Initialisiere …</div>
+  <div id="mount"></div>
 
-      <div class="row" style="margin-top:12px;">
-        <input id="agentId" placeholder="agent_..." />
-        <button id="startBtn">Mikro aktivieren & starten</button>
-        <button id="reconnectBtn" class="secondary">Reconnect</button>
-      </div>
-
-      <div id="status" class="muted" style="margin-top: 10px;"></div>
-
-      <div id="mount"></div>
-
-      <details style="margin-top:14px;">
-        <summary>Debug</summary>
-        <pre id="debug"></pre>
-      </details>
-    </div>
+  <div id="unlock">
+    <button id="unlockBtn">Mikrofon aktivieren</button>
   </div>
 
   <script>
-    // === Konfiguration ===
+    // ==== Konfig ====
+    const DEFAULT_AGENT_ID = "agent_8901keadvetcf4kvs1gqkvamj89e";
     const WIX_SIGNED_URL_BASE =
       "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl?agent_id=";
-
     const WIDGET_SCRIPT_SRC =
       "https://unpkg.com/@elevenlabs/convai-widget-embed";
 
-    // === UI ===
-    const qs = new URLSearchParams(location.search);
-    const agentFromUrl = qs.get("agent_id") || qs.get("agentId") || "agent_8901keadvetcf4kvs1gqkvamj89e";
-
-    const agentInput = document.getElementById("agentId");
-    const startBtn = document.getElementById("startBtn");
-    const reconnectBtn = document.getElementById("reconnectBtn");
+    // ==== Helpers ====
     const statusEl = document.getElementById("status");
-    const debugEl = document.getElementById("debug");
     const mount = document.getElementById("mount");
-
-    agentInput.value = agentFromUrl;
+    const unlock = document.getElementById("unlock");
+    const unlockBtn = document.getElementById("unlockBtn");
 
     function setStatus(msg) { statusEl.textContent = msg; }
-    function setDebug(obj) { debugEl.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); }
 
-    async function requestMicPermission() {
-      // Muss durch User-Klick ausgelöst werden – Browser-Sicherheitsregel
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop());
+    function getAgentId() {
+      const qs = new URLSearchParams(location.search);
+      return qs.get("agent_id") || qs.get("agentId") || DEFAULT_AGENT_ID;
     }
 
     function loadWidgetScriptOnce() {
@@ -88,18 +76,17 @@
     async function fetchSignedUrl(agentId) {
       const url = WIX_SIGNED_URL_BASE + encodeURIComponent(agentId);
       const res = await fetch(url, { cache: "no-store" });
-
       const text = await res.text();
       let data;
       try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
       if (!res.ok || !data?.signed_url) {
-        throw new Error(`Signed URL failed (${res.status}): ` + (data?.data?.detail?.message || data?.error || text));
+        throw new Error(`Signed URL failed (${res.status}): ` + (data?.error || text));
       }
       return data.signed_url;
     }
 
-    async function mountWidgetWithSignedUrl(signedUrl) {
+    function mountWidget(signedUrl) {
       mount.innerHTML = "";
       const el = document.createElement("elevenlabs-convai");
       el.setAttribute("signed-url", signedUrl);
@@ -107,41 +94,65 @@
       mount.appendChild(el);
     }
 
-    async function startFlow({ isReconnect = false } = {}) {
-      const agentId = agentInput.value.trim();
-      if (!agentId) return setStatus("Fehlt: agent_id");
+    async function tryAutoMic() {
+      // Versuch: Mic direkt aktivieren (klappt zuverlässig erst nach vorheriger Zustimmung)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+    }
 
-      startBtn.disabled = true;
-      reconnectBtn.disabled = true;
+    function needsUserGesture(err) {
+      const msg = String(err?.message || err);
+      // typische Fälle: NotAllowedError / "user gesture" / "Permission dismissed"
+      return (
+        err?.name === "NotAllowedError" ||
+        /user gesture|required|Permission dismissed|denied/i.test(msg)
+      );
+    }
 
+    async function init() {
+      const agentId = getAgentId();
+      setStatus("Hole signed_url …");
+
+      const signedUrl = await fetchSignedUrl(agentId);
+
+      setStatus("Lade Widget …");
+      await loadWidgetScriptOnce();
+
+      setStatus("Starte …");
+      mountWidget(signedUrl);
+
+      // Mic Auto-Start versuchen
       try {
-        setStatus(isReconnect ? "Reconnect: hole neue Signed URL …" : "Fordere Mikrofon-Berechtigung an …");
-        setDebug({ step: "start", agentId });
-
-        // Bei Reconnect muss nicht zwingend nochmal permission prompt kommen
-        if (!isReconnect) await requestMicPermission();
-
-        setStatus("Hole Signed URL …");
-        const signedUrl = await fetchSignedUrl(agentId);
-        setDebug({ step: "signed_url", signedUrl });
-
-        setStatus("Lade Widget …");
-        await loadWidgetScriptOnce();
-
-        await mountWidgetWithSignedUrl(signedUrl);
-        setStatus("Läuft. (Signed URL läuft irgendwann ab → Reconnect nutzen)");
+        await tryAutoMic();
+        setStatus("Bereit.");
       } catch (e) {
-        console.error(e);
-        setStatus("Fehler: " + (e?.message || String(e)));
-        setDebug(String(e));
-      } finally {
-        startBtn.disabled = false;
-        reconnectBtn.disabled = false;
+        // Wenn Browser den Auto-Start blockt: 1-Klick Unlock anzeigen
+        if (needsUserGesture(e)) {
+          setStatus("Bitte Mikrofon einmal aktivieren …");
+          unlock.style.display = "flex";
+        } else {
+          // sonst echter Fehler (kein Gerät, OS blockt, etc.)
+          console.error(e);
+          setStatus("Mikrofon-Fehler: " + (e?.message || String(e)));
+        }
       }
     }
 
-    startBtn.addEventListener("click", () => startFlow({ isReconnect: false }));
-    reconnectBtn.addEventListener("click", () => startFlow({ isReconnect: true }));
+    unlockBtn.addEventListener("click", async () => {
+      try {
+        await tryAutoMic();
+        unlock.style.display = "none";
+        setStatus("Bereit.");
+      } catch (e) {
+        console.error(e);
+        setStatus("Mikrofon-Fehler: " + (e?.message || String(e)));
+      }
+    });
+
+    init().catch(e => {
+      console.error(e);
+      setStatus("Init-Fehler: " + (e?.message || String(e)));
+    });
   </script>
 </body>
 </html>

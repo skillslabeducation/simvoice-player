@@ -1,15 +1,17 @@
 const qs = new URLSearchParams(location.search);
 const agentId = qs.get("agent_id") || qs.get("agentId");
-const sessionId = qs.get("sessionId");
+const sessionId = qs.get("sessionId") || qs.get("sessionid") || qs.get("sid");
+
+console.log("Player params:", { agentId, sessionId, search: location.search });
 
 if (!sessionId) {
-  throw new Error("Missing sessionId. Bitte über das Mitglieder-Portal starten.");
+  throw new Error("Missing sessionId. Bitte über /simvoice starten.");
 }
 
-const res = await fetch(
+const endpoint =
   "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl?agent_id="
   + encodeURIComponent(agentId)
   + "&sessionId="
-  + encodeURIComponent(sessionId),
-  { cache: "no-store" }
-);
+  + encodeURIComponent(sessionId);
+
+const res = await fetch(endpoint, { cache: "no-store" });

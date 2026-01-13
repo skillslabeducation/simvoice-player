@@ -4,11 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="cache-control" content="no-store" />
   <title>SimVoice</title>
   <style>
     html, body { margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
     #status { padding: 10px 12px; color:#666; font-size: 14px; }
     #mount { padding: 12px; }
+
     #unlock {
       position: fixed; inset: 0;
       display: none;
@@ -27,7 +29,7 @@
   </style>
 </head>
 <body>
-  <div id="status">Initialisiere …</div>
+  <div id="status">Init …</div>
   <div id="mount"></div>
 
   <div id="unlock">
@@ -45,27 +47,19 @@
       const agentId = qs.get("agent_id") || qs.get("agentId");
       const sessionId = qs.get("sessionId") || qs.get("sessionid") || qs.get("sid");
 
-      // Debug: du siehst das in der Console
       console.log("Player params:", { agentId, sessionId, search: location.search });
 
-      if (!agentId) {
-        statusEl.textContent = "Fehlt: agent_id";
-        return;
-      }
-      if (!sessionId) {
-        statusEl.textContent = "Fehlt: sessionId. Bitte über /simvoice starten.";
-        return;
-      }
+      if (!agentId) { statusEl.textContent = "Fehlt: agent_id"; return; }
+      if (!sessionId) { statusEl.textContent = "Fehlt: sessionId (nur über /simvoice starten)"; return; }
 
       const ENDPOINT =
-        "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl?agent_id="
-        + encodeURIComponent(agentId)
-        + "&sessionId="
-        + encodeURIComponent(sessionId);
+        "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl"
+        + "?agent_id=" + encodeURIComponent(agentId)
+        + "&sessionId=" + encodeURIComponent(sessionId);
 
       const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
 
-      function setStatus(msg) { statusEl.textContent = msg; }
+      function setStatus(msg){ statusEl.textContent = msg; }
 
       function loadWidgetScriptOnce() {
         return new Promise((resolve, reject) => {
@@ -87,9 +81,8 @@
         const text = await res.text();
         let data;
         try { data = JSON.parse(text); } catch { data = { raw: text }; }
-
         if (!res.ok || !data?.signed_url) {
-          throw new Error(`Signed URL failed (${res.status}): ` + (data?.error || text));
+          throw new Error(`Signed URL failed (${res.status}): ` + (data?.error || JSON.stringify(data) || text));
         }
         return data.signed_url;
       }
@@ -98,7 +91,7 @@
         mount.innerHTML = "";
         const el = document.createElement("elevenlabs-convai");
         el.setAttribute("signed-url", signedUrl);
-        el.setAttribute("variant", "expanded"); // optional
+        el.setAttribute("variant", "expanded");
         mount.appendChild(el);
       }
 
@@ -114,12 +107,12 @@
 
       try {
         const signedUrl = await fetchSignedUrl();
+
         setStatus("Lade Widget …");
         await loadWidgetScriptOnce();
         mountWidget(signedUrl);
-        setStatus("Starte …");
 
-        // Mic Auto-Start versuchen (klappt oft erst nach einmaligem Allow)
+        setStatus("Starte …");
         try {
           await tryAutoMic();
           setStatus("Bereit.");

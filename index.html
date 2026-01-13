@@ -1,17 +1,153 @@
-const qs = new URLSearchParams(location.search);
-const agentId = qs.get("agent_id") || qs.get("agentId");
-const sessionId = qs.get("sessionId") || qs.get("sessionid") || qs.get("sid");
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>SimVoice</title>
+  <style>
+    html, body { margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #status { padding: 10px 12px; color:#666; font-size: 14px; }
+    #mount { padding: 12px; }
+    #unlock {
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+    }
+    #unlock button{
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #111;
+      background: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">Initialisiere …</div>
+  <div id="mount"></div>
 
-console.log("Player params:", { agentId, sessionId, search: location.search });
+  <div id="unlock">
+    <button id="unlockBtn">Mikrofon aktivieren</button>
+  </div>
 
-if (!sessionId) {
-  throw new Error("Missing sessionId. Bitte über /simvoice starten.");
-}
+  <script>
+    (async () => {
+      const statusEl = document.getElementById("status");
+      const mount = document.getElementById("mount");
+      const unlock = document.getElementById("unlock");
+      const unlockBtn = document.getElementById("unlockBtn");
 
-const endpoint =
-  "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl?agent_id="
-  + encodeURIComponent(agentId)
-  + "&sessionId="
-  + encodeURIComponent(sessionId);
+      const qs = new URLSearchParams(location.search);
+      const agentId = qs.get("agent_id") || qs.get("agentId");
+      const sessionId = qs.get("sessionId") || qs.get("sessionid") || qs.get("sid");
 
-const res = await fetch(endpoint, { cache: "no-store" });
+      // Debug: du siehst das in der Console
+      console.log("Player params:", { agentId, sessionId, search: location.search });
+
+      if (!agentId) {
+        statusEl.textContent = "Fehlt: agent_id";
+        return;
+      }
+      if (!sessionId) {
+        statusEl.textContent = "Fehlt: sessionId. Bitte über /simvoice starten.";
+        return;
+      }
+
+      const ENDPOINT =
+        "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl?agent_id="
+        + encodeURIComponent(agentId)
+        + "&sessionId="
+        + encodeURIComponent(sessionId);
+
+      const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+
+      function setStatus(msg) { statusEl.textContent = msg; }
+
+      function loadWidgetScriptOnce() {
+        return new Promise((resolve, reject) => {
+          if (document.querySelector('script[data-elevenlabs-widget="1"]')) return resolve();
+          const s = document.createElement("script");
+          s.src = WIDGET_SRC;
+          s.async = true;
+          s.type = "text/javascript";
+          s.dataset.elevenlabsWidget = "1";
+          s.onload = resolve;
+          s.onerror = () => reject(new Error("Widget Script konnte nicht geladen werden"));
+          document.body.appendChild(s);
+        });
+      }
+
+      async function fetchSignedUrl() {
+        setStatus("Hole Signed URL …");
+        const res = await fetch(ENDPOINT, { cache: "no-store" });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+        if (!res.ok || !data?.signed_url) {
+          throw new Error(`Signed URL failed (${res.status}): ` + (data?.error || text));
+        }
+        return data.signed_url;
+      }
+
+      function mountWidget(signedUrl) {
+        mount.innerHTML = "";
+        const el = document.createElement("elevenlabs-convai");
+        el.setAttribute("signed-url", signedUrl);
+        el.setAttribute("variant", "expanded"); // optional
+        mount.appendChild(el);
+      }
+
+      async function tryAutoMic() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+      }
+
+      function needsUserGesture(err) {
+        const msg = String(err?.message || err);
+        return err?.name === "NotAllowedError" || /gesture|required|dismissed|denied/i.test(msg);
+      }
+
+      try {
+        const signedUrl = await fetchSignedUrl();
+        setStatus("Lade Widget …");
+        await loadWidgetScriptOnce();
+        mountWidget(signedUrl);
+        setStatus("Starte …");
+
+        // Mic Auto-Start versuchen (klappt oft erst nach einmaligem Allow)
+        try {
+          await tryAutoMic();
+          setStatus("Bereit.");
+        } catch (e) {
+          if (needsUserGesture(e)) {
+            setStatus("Bitte Mikrofon einmal aktivieren …");
+            unlock.style.display = "flex";
+          } else {
+            console.error(e);
+            setStatus("Mikrofon-Fehler: " + (e?.message || String(e)));
+          }
+        }
+      } catch (e) {
+        console.error(e);
+        setStatus("Init-Fehler: " + (e?.message || String(e)));
+      }
+
+      unlockBtn.addEventListener("click", async () => {
+        try {
+          await tryAutoMic();
+          unlock.style.display = "none";
+          setStatus("Bereit.");
+        } catch (e) {
+          console.error(e);
+          setStatus("Mikrofon-Fehler: " + (e?.message || String(e)));
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

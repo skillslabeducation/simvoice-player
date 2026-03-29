@@ -9,48 +9,103 @@
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f5f5; }
 
-    #status { position: fixed; top: 0; left: 0; right: 0; padding: 8px 12px; font-size: 14px; color: #666; background: rgba(255,255,255,0.9); z-index: 10; display: none; }
-
-    .screen { display: none; min-height: 100vh; }
+    /* ── Screens ─────────────────────────────────────────── */
+    .screen { display: none; }
     .screen.active { display: flex; }
 
-    #screen-loading { align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #888; }
+    /* Loading */
+    #screen-loading { min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #888; }
     .spinner { width: 36px; height: 36px; border: 3px solid #ddd; border-top-color: #555; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    #screen-error { align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
+    /* Error */
+    #screen-error { min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
     #screen-error h2 { color: #c0392b; margin: 0; }
     #screen-error p { color: #555; margin: 0; max-width: 400px; }
-    .btn-back { padding: 10px 20px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 15px; text-decoration: none; color: #333; }
 
-    #screen-pre { flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; gap: 20px; }
-    #pre-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.1); max-width: 480px; width: 100%; overflow: hidden; }
-    #pre-img { width: 100%; height: 220px; object-fit: cover; background: #ddd; display: block; }
-    #pre-img.no-image { display: none; }
-    #pre-body { padding: 24px; }
-    #pre-fach { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 0 0 6px; }
-    #pre-title { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
-    #pre-person { font-size: 15px; color: #555; margin: 0 0 16px; }
-    #pre-desc { font-size: 14px; color: #444; line-height: 1.6; margin: 0 0 24px; }
-    #start-btn { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #1a1a2e; color: #fff; font-size: 16px; cursor: pointer; font-weight: 500; }
-    #start-btn:disabled { background: #888; cursor: not-allowed; }
-
-    #screen-sim { flex-direction: column; height: 100vh; }
-    #mount { flex: 1; }
-    elevenlabs-convai { display: block; width: 100%; height: 100%; }
-    #end-bar { padding: 12px 20px; background: #fff; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
-    #end-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid #c0392b; background: #fff; color: #c0392b; cursor: pointer; font-size: 14px; }
-
-    #screen-done { align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
+    /* Done */
+    #screen-done { min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
     #screen-done h2 { margin: 0; }
     #screen-done p { color: #555; margin: 0; }
 
+    /* ── Haupt-Layout ────────────────────────────────────── */
+    #screen-main {
+      height: 100vh;
+      flex-direction: row;
+    }
+
+    /* Linke Spalte: Patienteninfo */
+    #info-panel {
+      width: 360px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-right: 1px solid #e5e5e5;
+      overflow-y: auto;
+    }
+
+    #pre-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: #ddd;
+      display: block;
+      flex-shrink: 0;
+    }
+    #pre-img.no-image { display: none; }
+
+    #info-body {
+      padding: 20px;
+      flex: 1;
+    }
+    #pre-fach { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 0 0 6px; }
+    #pre-title { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+    #pre-person { font-size: 14px; color: #555; margin: 0 0 14px; }
+    #pre-desc { font-size: 13px; color: #444; line-height: 1.6; margin: 0; }
+
+    #end-bar {
+      padding: 14px 20px;
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+    }
+    #end-btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #c0392b;
+      background: #fff;
+      color: #c0392b;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    /* Rechte Spalte: Widget */
+    #widget-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #mount { flex: 1; }
+    elevenlabs-convai { display: block; width: 100%; height: 100%; }
+
+    /* ── Mikrofon-Overlay ────────────────────────────────── */
     #unlock { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.65); z-index: 9999; }
     #unlock button { padding: 12px 16px; border-radius: 12px; border: 1px solid #111; background: #fff; cursor: pointer; font-size: 16px; }
+
+    /* ── Buttons allgemein ───────────────────────────────── */
+    .btn-back { padding: 10px 20px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 15px; text-decoration: none; color: #333; }
+
+    /* ── Mobile ──────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      #screen-main { flex-direction: column; height: auto; min-height: 100vh; }
+      #info-panel { width: 100%; border-right: none; border-bottom: 1px solid #e5e5e5; }
+      #widget-panel { min-height: 60vh; }
+    }
   </style>
 </head>
 <body>
-  <div id="status"></div>
 
   <div id="screen-loading" class="screen active">
     <div class="spinner"></div>
@@ -63,23 +118,24 @@
     <a href="https://www.skillslab-education.de/simvoice" class="btn-back">← Zurück zur Übersicht</a>
   </div>
 
-  <div id="screen-pre" class="screen">
-    <div id="pre-card">
+  <div id="screen-main" class="screen">
+    <!-- Links: Patienteninfo -->
+    <div id="info-panel">
       <img id="pre-img" src="" alt="Patientenfoto" />
-      <div id="pre-body">
+      <div id="info-body">
         <p id="pre-fach"></p>
         <h2 id="pre-title"></h2>
         <p id="pre-person"></p>
         <p id="pre-desc"></p>
-        <button id="start-btn">Simulation starten</button>
+      </div>
+      <div id="end-bar">
+        <button id="end-btn">Simulation beenden</button>
       </div>
     </div>
-  </div>
 
-  <div id="screen-sim" class="screen">
-    <div id="mount"></div>
-    <div id="end-bar">
-      <button id="end-btn">Simulation beenden</button>
+    <!-- Rechts: Widget -->
+    <div id="widget-panel">
+      <div id="mount"></div>
     </div>
   </div>
 
@@ -101,15 +157,12 @@
     const screens = {
       loading: document.getElementById('screen-loading'),
       error:   document.getElementById('screen-error'),
-      pre:     document.getElementById('screen-pre'),
-      sim:     document.getElementById('screen-sim'),
+      main:    document.getElementById('screen-main'),
       done:    document.getElementById('screen-done'),
     };
-    const statusEl  = document.getElementById('status');
     const unlock    = document.getElementById('unlock');
     const unlockBtn = document.getElementById('unlockBtn');
 
-    let currentAgentId = null;
     let currentSession = null;
 
     function showScreen(name) {
@@ -122,12 +175,6 @@
       document.getElementById('error-msg').textContent   = msg;
       showScreen('error');
     }
-
-    function setStatus(msg) {
-      statusEl.style.display = 'block';
-      statusEl.textContent   = msg;
-    }
-    function hideStatus() { statusEl.style.display = 'none'; }
 
     async function wixPost(endpoint, data) {
       const res = await fetch(WIX_BASE + '/' + endpoint, {
@@ -170,7 +217,6 @@
       const el = document.createElement('elevenlabs-convai');
       el.setAttribute('signed-url', signedUrl);
       el.setAttribute('variant', 'expanded');
-      el.setAttribute('variant', 'full');
       el.style.width  = '100%';
       el.style.height = '100%';
       mount.appendChild(el);
@@ -185,7 +231,7 @@
       return err?.name === 'NotAllowedError' || /gesture|required|dismissed|denied/i.test(String(err?.message || err));
     }
 
-    // ── Main Flow ──────────────────────────────────────────────────────────
+    // ── Main Flow ──────────────────────────────────────────
 
     const qs        = new URLSearchParams(location.search);
     const sessionId = qs.get('session') || qs.get('sessionId') || qs.get('sid');
@@ -196,7 +242,6 @@
     }
 
     // 1. Token validieren
-    setStatus('Zugang wird geprüft…');
     let tokenResult;
     try {
       tokenResult = await wixPost('validateToken', { sessionId });
@@ -215,67 +260,49 @@
       return;
     }
 
-    currentAgentId = tokenResult.agentId;
     currentSession = sessionId;
+    const agentId  = tokenResult.agentId;
 
-    // 2. Falldaten laden
-    setStatus('Lade Falldaten…');
-    let caseData;
-    try {
-      caseData = await wixPost('getCaseData', { sessionId });
-    } catch (e) {
-      caseData = { title: 'Simulation', person: '', fachrichtung: '', description: '', imageUrl: '' };
-    }
+    // 2. Falldaten + Signed URL parallel laden
+    const [caseData, signedUrl] = await Promise.allSettled([
+      wixPost('getCaseData', { sessionId }),
+      fetchSignedUrl(agentId, sessionId),
+    ]);
 
+    // Patienteninfo befüllen (auch wenn getCaseData fehlschlägt)
+    const cd = caseData.status === 'fulfilled' ? caseData.value : {};
     const imgEl = document.getElementById('pre-img');
-    if (caseData.imageUrl) {
-      imgEl.src = caseData.imageUrl;
+    if (cd.imageUrl) {
+      imgEl.src = cd.imageUrl;
       imgEl.classList.remove('no-image');
     } else {
       imgEl.classList.add('no-image');
     }
-    document.getElementById('pre-fach').textContent   = caseData.fachrichtung || '';
-    document.getElementById('pre-title').textContent  = caseData.title        || 'Simulation';
-    document.getElementById('pre-person').textContent = caseData.person       || '';
-    document.getElementById('pre-desc').textContent   = caseData.description  || '';
+    document.getElementById('pre-fach').textContent   = cd.fachrichtung || '';
+    document.getElementById('pre-title').textContent  = cd.title        || 'Simulation';
+    document.getElementById('pre-person').textContent = cd.person       || '';
+    document.getElementById('pre-desc').textContent   = cd.description  || '';
 
-    hideStatus();
-    showScreen('pre');
+    // Widget starten (falls Signed URL erfolgreich)
+    if (signedUrl.status === 'rejected') {
+      showError('Widget-Fehler', 'Die Simulation konnte nicht gestartet werden: ' + signedUrl.reason?.message);
+      return;
+    }
 
-    // 3. Simulation starten
-    document.getElementById('start-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('start-btn');
-      btn.disabled    = true;
-      btn.textContent = 'Wird gestartet…';
-      setStatus('Lade Widget…');
+    await loadWidgetScriptOnce();
+    showScreen('main');
+    mountWidget(signedUrl.value);
 
-      try {
-        const signedUrl = await fetchSignedUrl(currentAgentId, currentSession);
-        await loadWidgetScriptOnce();
-        showScreen('sim');
-        mountWidget(signedUrl);
-
-        setStatus('Starte…');
-        try {
-          await tryAutoMic();
-          hideStatus();
-        } catch (e) {
-          if (needsUserGesture(e)) {
-            setStatus('Bitte Mikrofon einmal aktivieren…');
-            unlock.style.display = 'flex';
-          } else {
-            hideStatus();
-          }
-        }
-      } catch (e) {
-        console.error(e);
-        btn.disabled    = false;
-        btn.textContent = 'Simulation starten';
-        setStatus('Fehler beim Start: ' + (e?.message || String(e)));
+    // Mikrofon
+    try {
+      await tryAutoMic();
+    } catch (e) {
+      if (needsUserGesture(e)) {
+        unlock.style.display = 'flex';
       }
-    });
+    }
 
-    // 4. Simulation beenden
+    // 3. Simulation beenden
     document.getElementById('end-btn').addEventListener('click', async () => {
       try {
         await wixPost('endSession', { sessionId: currentSession });
@@ -285,14 +312,13 @@
       showScreen('done');
     });
 
-    // 5. Mikrofon-Overlay
+    // 4. Mikrofon-Overlay
     unlockBtn.addEventListener('click', async () => {
       try {
         await tryAutoMic();
         unlock.style.display = 'none';
-        hideStatus();
       } catch (e) {
-        setStatus('Mikrofon-Fehler: ' + (e?.message || String(e)));
+        console.warn('Mikrofon-Fehler:', e);
       }
     });
 

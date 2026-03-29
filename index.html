@@ -10,77 +10,78 @@
     html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f5f5; }
 
     .screen { display: none; }
-    .screen.active { display: flex; }
+    .screen.active { display: block; }
 
     /* Loading */
-    #screen-loading { min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #888; }
+    #screen-loading { display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #888; }
+    #screen-loading.active { display: flex; }
     .spinner { width: 36px; height: 36px; border: 3px solid #ddd; border-top-color: #555; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Error / Done */
-    #screen-error, #screen-done { min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
+    #screen-error, #screen-done { min-height: 100vh; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
+    #screen-error.active, #screen-done.active { display: flex; }
     #screen-error h2 { color: #c0392b; margin: 0; }
     #screen-error p, #screen-done p { color: #555; margin: 0; max-width: 400px; }
     #screen-done h2 { margin: 0; }
     .btn-back { padding: 10px 20px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 15px; text-decoration: none; color: #333; }
 
-    /* ── Haupt-Layout ─────────────────────────────────── */
+    /* ── Haupt-Layout: Widget fullscreen + fixed Overlays ─── */
     #screen-main {
-      flex-direction: column;
-      align-items: center;
+      position: relative;
       height: 100vh;
-      background: #f5f5f5;
     }
 
-    /* 1. Foto */
-    #photo-wrap {
-      padding: 28px 0 16px;
-      flex-shrink: 0;
+    /* 1. Patienteninfo — fixed oben */
+    #patient-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      min-height: 72px;
     }
     #pre-img {
-      width: 110px;
-      height: 110px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       object-fit: cover;
-      display: block;
+      flex-shrink: 0;
       background: #ddd;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.1);
     }
     #pre-img.no-image { display: none; }
+    #info-text { flex: 1; min-width: 0; }
+    #pre-fach { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin: 0 0 2px; }
+    #pre-title { font-size: 17px; font-weight: 600; margin: 0 0 2px; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #pre-person { font-size: 13px; color: #555; margin: 0; }
 
-    /* 2. Text */
-    #info-text {
-      text-align: center;
-      padding: 0 24px 20px;
-      flex-shrink: 0;
-      max-width: 500px;
-      width: 100%;
-    }
-    #pre-fach { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin: 0 0 4px; }
-    #pre-title { font-size: 20px; font-weight: 600; margin: 0 0 2px; color: #1a1a1a; }
-    #pre-person { font-size: 14px; color: #555; margin: 0 0 10px; }
-    #pre-desc { font-size: 13px; color: #666; line-height: 1.5; margin: 0; }
-
-    /* 3. Widget */
+    /* 2. Widget — nimmt Raum zwischen Bar und Footer ein */
     #widget-panel {
-      flex: 1;
-      min-height: 0;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
+      position: fixed;
+      top: 72px;
+      bottom: 56px;
+      left: 0; right: 0;
+      z-index: 1;
     }
-    #mount { flex: 1; min-height: 0; }
+    #mount { width: 100%; height: 100%; }
     elevenlabs-convai { display: block; width: 100%; height: 100%; }
 
-    /* 4. Footer */
+    /* 3. Footer — fixed unten */
     #footer {
-      flex-shrink: 0;
-      width: 100%;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 16px;
-      padding: 14px 20px;
+      padding: 0 20px;
       background: #fff;
       border-top: 1px solid #eee;
     }
@@ -121,26 +122,29 @@
   </div>
 
   <div id="screen-main" class="screen">
-    <div id="photo-wrap">
+
+    <!-- Fixed: Patienteninfo oben -->
+    <div id="patient-bar">
       <img id="pre-img" src="" alt="Patientenfoto" />
+      <div id="info-text">
+        <p id="pre-fach"></p>
+        <h2 id="pre-title"></h2>
+        <p id="pre-person"></p>
+      </div>
     </div>
 
-    <div id="info-text">
-      <p id="pre-fach"></p>
-      <h2 id="pre-title"></h2>
-      <p id="pre-person"></p>
-      <p id="pre-desc"></p>
-    </div>
-
+    <!-- Fullscreen Widget -->
     <div id="widget-panel">
       <div id="mount"></div>
     </div>
 
+    <!-- Fixed: Footer unten -->
     <div id="footer">
       <!-- Feedback-URL hier eintragen -->
       <a id="feedback-link" href="#" target="_blank">Feedback geben</a>
       <button id="end-btn">Simulation beenden</button>
     </div>
+
   </div>
 
   <div id="screen-done" class="screen">
@@ -279,7 +283,6 @@
     document.getElementById('pre-fach').textContent   = cd.fachrichtung || '';
     document.getElementById('pre-title').textContent  = cd.title        || 'Simulation';
     document.getElementById('pre-person').textContent = cd.person       || '';
-    document.getElementById('pre-desc').textContent   = cd.description  || '';
 
     if (signedUrl.status === 'rejected') {
       showError('Widget-Fehler', 'Die Simulation konnte nicht gestartet werden.');

@@ -28,12 +28,13 @@
 
     /* ── Haupt-Layout ─── */
     #screen-main {
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding-bottom: 200px; /* Platz für Footer */
+      padding-top: 160px;  /* Platz für Widget oben */
+      padding-bottom: 72px; /* Platz für Footer */
+      overflow-y: auto;
     }
 
     /* Widget mount — nur DOM-Anker, Widget positioniert sich selbst */
@@ -47,7 +48,8 @@
       gap: 8px;
       text-align: center;
       padding: 0 24px;
-      margin-top: 80px;
+      max-width: 600px;
+      width: 100%;
     }
     #pre-img {
       width: 80px;

@@ -5,138 +5,298 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
   <title>SimVoice</title>
-<style>
-  html, body { margin:0; padding:0; height:100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-  #status { position: fixed; top: 0; left: 0; right: 0; padding: 8px 12px; font-size: 14px; color:#666; background: rgba(255,255,255,0.85); z-index: 10; }
-  #mount { height: 100vh; } /* volle Höhe */
-  elevenlabs-convai { display:block; width:100%; height:100%; } /* widget großziehen */
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f5f5; }
 
-  #unlock { position: fixed; inset: 0; display: none; align-items:center; justify-content:center; background: rgba(0,0,0,.65); z-index:9999; }
-  #unlock button { padding:12px 16px; border-radius:12px; border:1px solid #111; background:#fff; cursor:pointer; font-size:16px; }
-</style>
+    #status { position: fixed; top: 0; left: 0; right: 0; padding: 8px 12px; font-size: 14px; color: #666; background: rgba(255,255,255,0.9); z-index: 10; display: none; }
+
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    #screen-loading { align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #888; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #ddd; border-top-color: #555; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #screen-error { align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
+    #screen-error h2 { color: #c0392b; margin: 0; }
+    #screen-error p { color: #555; margin: 0; max-width: 400px; }
+    .btn-back { padding: 10px 20px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 15px; text-decoration: none; color: #333; }
+
+    #screen-pre { flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; gap: 20px; }
+    #pre-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.1); max-width: 480px; width: 100%; overflow: hidden; }
+    #pre-img { width: 100%; height: 220px; object-fit: cover; background: #ddd; display: block; }
+    #pre-img.no-image { display: none; }
+    #pre-body { padding: 24px; }
+    #pre-fach { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 0 0 6px; }
+    #pre-title { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+    #pre-person { font-size: 15px; color: #555; margin: 0 0 16px; }
+    #pre-desc { font-size: 14px; color: #444; line-height: 1.6; margin: 0 0 24px; }
+    #start-btn { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #1a1a2e; color: #fff; font-size: 16px; cursor: pointer; font-weight: 500; }
+    #start-btn:disabled { background: #888; cursor: not-allowed; }
+
+    #screen-sim { flex-direction: column; height: 100vh; }
+    #mount { flex: 1; }
+    elevenlabs-convai { display: block; width: 100%; height: 100%; }
+    #end-bar { padding: 12px 20px; background: #fff; border-top: 1px solid #eee; display: flex; justify-content: flex-end; }
+    #end-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid #c0392b; background: #fff; color: #c0392b; cursor: pointer; font-size: 14px; }
+
+    #screen-done { align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
+    #screen-done h2 { margin: 0; }
+    #screen-done p { color: #555; margin: 0; }
+
+    #unlock { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.65); z-index: 9999; }
+    #unlock button { padding: 12px 16px; border-radius: 12px; border: 1px solid #111; background: #fff; cursor: pointer; font-size: 16px; }
+  </style>
 </head>
 <body>
-  <div id="status">Init (BUILD: 2026-01-13-A)</div>
-  <div id="mount"></div>
+  <div id="status"></div>
+
+  <div id="screen-loading" class="screen active">
+    <div class="spinner"></div>
+    <span>Wird geladen…</span>
+  </div>
+
+  <div id="screen-error" class="screen">
+    <h2 id="error-title">Zugriff nicht möglich</h2>
+    <p id="error-msg"></p>
+    <a href="https://www.skillslab-education.de/simvoice" class="btn-back">← Zurück zur Übersicht</a>
+  </div>
+
+  <div id="screen-pre" class="screen">
+    <div id="pre-card">
+      <img id="pre-img" src="" alt="Patientenfoto" />
+      <div id="pre-body">
+        <p id="pre-fach"></p>
+        <h2 id="pre-title"></h2>
+        <p id="pre-person"></p>
+        <p id="pre-desc"></p>
+        <button id="start-btn">Simulation starten</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-sim" class="screen">
+    <div id="mount"></div>
+    <div id="end-bar">
+      <button id="end-btn">Simulation beenden</button>
+    </div>
+  </div>
+
+  <div id="screen-done" class="screen">
+    <h2>Simulation abgeschlossen</h2>
+    <p>Die Sitzung wurde gespeichert.</p>
+    <a href="https://www.skillslab-education.de/simvoice" class="btn-back">← Zurück zur Übersicht</a>
+  </div>
 
   <div id="unlock">
     <button id="unlockBtn">Mikrofon aktivieren</button>
   </div>
 
   <script>
-    (async () => {
-      const statusEl = document.getElementById("status");
-      const mount = document.getElementById("mount");
-      const unlock = document.getElementById("unlock");
-      const unlockBtn = document.getElementById("unlockBtn");
+  (async () => {
+    const WIX_BASE   = 'https://www.skillslab-education.de/_functions';
+    const WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
 
-      const qs = new URLSearchParams(location.search);
-      const agentId = qs.get("agent_id") || qs.get("agentId");
-      const sessionId = qs.get("sessionId") || qs.get("sessionid") || qs.get("sid");
+    const screens = {
+      loading: document.getElementById('screen-loading'),
+      error:   document.getElementById('screen-error'),
+      pre:     document.getElementById('screen-pre'),
+      sim:     document.getElementById('screen-sim'),
+      done:    document.getElementById('screen-done'),
+    };
+    const statusEl  = document.getElementById('status');
+    const unlock    = document.getElementById('unlock');
+    const unlockBtn = document.getElementById('unlockBtn');
 
-      console.log("Player params:", { agentId, sessionId, search: location.search });
+    let currentAgentId = null;
+    let currentSession = null;
 
-      if (!agentId) { statusEl.textContent = "Fehlt: agent_id"; return; }
-      if (!sessionId) { statusEl.textContent = "Fehlt: sessionId (nur über /simvoice starten)"; return; }
+    function showScreen(name) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[name].classList.add('active');
+    }
 
-      const ENDPOINT =
-        "https://www.skillslab-education.de/_functions/elevenlabsSignedUrl"
-        + "?agent_id=" + encodeURIComponent(agentId)
-        + "&sessionId=" + encodeURIComponent(sessionId);
+    function showError(title, msg) {
+      document.getElementById('error-title').textContent = title;
+      document.getElementById('error-msg').textContent   = msg;
+      showScreen('error');
+    }
 
-      const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+    function setStatus(msg) {
+      statusEl.style.display = 'block';
+      statusEl.textContent   = msg;
+    }
+    function hideStatus() { statusEl.style.display = 'none'; }
 
-      function setStatus(msg){ statusEl.textContent = msg; }
+    async function wixPost(endpoint, data) {
+      const res = await fetch(WIX_BASE + '/' + endpoint, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(data),
+      });
+      return res.json();
+    }
 
-      function loadWidgetScriptOnce() {
-        return new Promise((resolve, reject) => {
-          if (document.querySelector('script[data-elevenlabs-widget="1"]')) return resolve();
-          const s = document.createElement("script");
-          s.src = WIDGET_SRC;
-          s.async = true;
-          s.type = "text/javascript";
-          s.dataset.elevenlabsWidget = "1";
-          s.onload = resolve;
-          s.onerror = () => reject(new Error("Widget Script konnte nicht geladen werden"));
-          document.body.appendChild(s);
-        });
+    function loadWidgetScriptOnce() {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector('script[data-elevenlabs-widget="1"]')) return resolve();
+        const s = document.createElement('script');
+        s.src   = WIDGET_SRC;
+        s.async = true;
+        s.type  = 'text/javascript';
+        s.dataset.elevenlabsWidget = '1';
+        s.onload  = resolve;
+        s.onerror = () => reject(new Error('Widget-Script konnte nicht geladen werden'));
+        document.body.appendChild(s);
+      });
+    }
+
+    async function fetchSignedUrl(agentId, sessionId) {
+      const url = WIX_BASE + '/elevenlabsSignedUrl'
+        + '?agent_id='  + encodeURIComponent(agentId)
+        + '&sessionId=' + encodeURIComponent(sessionId);
+      const res  = await fetch(url, { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok || !data?.signed_url) {
+        throw new Error('Signed URL fehlgeschlagen: ' + (data?.error || JSON.stringify(data)));
       }
+      return data.signed_url;
+    }
 
-      async function fetchSignedUrl() {
-        setStatus("Hole Signed URL …");
-        const res = await fetch(ENDPOINT, { cache: "no-store" });
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-        if (!res.ok || !data?.signed_url) {
-          throw new Error(`Signed URL failed (${res.status}): ` + (data?.error || JSON.stringify(data) || text));
-        }
-        return data.signed_url;
-      }
+    function mountWidget(signedUrl) {
+      const mount = document.getElementById('mount');
+      mount.innerHTML = '';
+      const el = document.createElement('elevenlabs-convai');
+      el.setAttribute('signed-url', signedUrl);
+      el.setAttribute('variant', 'expanded');
+      el.setAttribute('variant', 'full');
+      el.style.width  = '100%';
+      el.style.height = '100%';
+      mount.appendChild(el);
+    }
 
-function mountWidget(signedUrl) {
-  mount.innerHTML = "";
+    async function tryAutoMic() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+    }
 
-  const el = document.createElement("elevenlabs-convai");
-  el.setAttribute("signed-url", signedUrl);
+    function needsUserGesture(err) {
+      return err?.name === 'NotAllowedError' || /gesture|required|dismissed|denied/i.test(String(err?.message || err));
+    }
 
-  // je nach Widget-Version: "expanded" / "full" – eins davon greift, das andere wird ignoriert
-  el.setAttribute("variant", "expanded");
-  el.setAttribute("variant", "full");
+    // ── Main Flow ──────────────────────────────────────────────────────────
 
-  // harte Größenangaben (hilft, wenn Shadow DOM/iframe rumzickt)
-  el.style.width = "100%";
-  el.style.height = "100%";
+    const qs        = new URLSearchParams(location.search);
+    const sessionId = qs.get('session') || qs.get('sessionId') || qs.get('sid');
 
-  mount.appendChild(el);
-}
+    if (!sessionId) {
+      showError('Kein Zugang', 'Bitte starte die Simulation über das SkillsLab Portal.');
+      return;
+    }
 
+    // 1. Token validieren
+    setStatus('Zugang wird geprüft…');
+    let tokenResult;
+    try {
+      tokenResult = await wixPost('validateToken', { sessionId });
+    } catch (e) {
+      showError('Verbindungsfehler', 'Das Portal konnte nicht erreicht werden. Bitte versuche es erneut.');
+      return;
+    }
 
-      async function tryAutoMic() {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(t => t.stop());
-      }
+    if (!tokenResult.valid) {
+      const msgs = {
+        expired:   'Dieser Link ist abgelaufen. Bitte starte die Simulation erneut über das Portal.',
+        used:      'Diese Simulation wurde bereits gestartet. Bitte starte einen neuen Versuch.',
+        not_found: 'Dieser Link ist ungültig. Bitte starte die Simulation über das Portal.',
+      };
+      showError('Zugriff nicht möglich', msgs[tokenResult.reason] || 'Ungültiger Zugang.');
+      return;
+    }
 
-      function needsUserGesture(err) {
-        const msg = String(err?.message || err);
-        return err?.name === "NotAllowedError" || /gesture|required|dismissed|denied/i.test(msg);
-      }
+    currentAgentId = tokenResult.agentId;
+    currentSession = sessionId;
+
+    // 2. Falldaten laden
+    setStatus('Lade Falldaten…');
+    let caseData;
+    try {
+      caseData = await wixPost('getCaseData', { sessionId });
+    } catch (e) {
+      caseData = { title: 'Simulation', person: '', fachrichtung: '', description: '', imageUrl: '' };
+    }
+
+    const imgEl = document.getElementById('pre-img');
+    if (caseData.imageUrl) {
+      imgEl.src = caseData.imageUrl;
+      imgEl.classList.remove('no-image');
+    } else {
+      imgEl.classList.add('no-image');
+    }
+    document.getElementById('pre-fach').textContent   = caseData.fachrichtung || '';
+    document.getElementById('pre-title').textContent  = caseData.title        || 'Simulation';
+    document.getElementById('pre-person').textContent = caseData.person       || '';
+    document.getElementById('pre-desc').textContent   = caseData.description  || '';
+
+    hideStatus();
+    showScreen('pre');
+
+    // 3. Simulation starten
+    document.getElementById('start-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('start-btn');
+      btn.disabled    = true;
+      btn.textContent = 'Wird gestartet…';
+      setStatus('Lade Widget…');
 
       try {
-        const signedUrl = await fetchSignedUrl();
-        setStatus("Lade Widget …");
+        const signedUrl = await fetchSignedUrl(currentAgentId, currentSession);
         await loadWidgetScriptOnce();
+        showScreen('sim');
         mountWidget(signedUrl);
 
-        setStatus("Starte …");
+        setStatus('Starte…');
         try {
           await tryAutoMic();
-          setStatus("Bereit.");
+          hideStatus();
         } catch (e) {
           if (needsUserGesture(e)) {
-            setStatus("Bitte Mikrofon einmal aktivieren …");
-            unlock.style.display = "flex";
+            setStatus('Bitte Mikrofon einmal aktivieren…');
+            unlock.style.display = 'flex';
           } else {
-            console.error(e);
-            setStatus("Mikrofon-Fehler: " + (e?.message || String(e)));
+            hideStatus();
           }
         }
       } catch (e) {
         console.error(e);
-        setStatus("Init-Fehler: " + (e?.message || String(e)));
+        btn.disabled    = false;
+        btn.textContent = 'Simulation starten';
+        setStatus('Fehler beim Start: ' + (e?.message || String(e)));
       }
+    });
 
-      unlockBtn.addEventListener("click", async () => {
-        try {
-          await tryAutoMic();
-          unlock.style.display = "none";
-          setStatus("Bereit.");
-        } catch (e) {
-          console.error(e);
-          setStatus("Mikrofon-Fehler: " + (e?.message || String(e)));
-        }
-      });
-    })();
+    // 4. Simulation beenden
+    document.getElementById('end-btn').addEventListener('click', async () => {
+      try {
+        await wixPost('endSession', { sessionId: currentSession });
+      } catch (e) {
+        console.warn('endSession Fehler (ignoriert):', e);
+      }
+      showScreen('done');
+    });
+
+    // 5. Mikrofon-Overlay
+    unlockBtn.addEventListener('click', async () => {
+      try {
+        await tryAutoMic();
+        unlock.style.display = 'none';
+        hideStatus();
+      } catch (e) {
+        setStatus('Mikrofon-Fehler: ' + (e?.message || String(e)));
+      }
+    });
+
+  })();
   </script>
 </body>
 </html>

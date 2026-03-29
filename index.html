@@ -61,6 +61,11 @@
     #pre-fach { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin: 0; }
     #pre-title { font-size: 20px; font-weight: 600; margin: 0; color: #1a1a1a; }
     #pre-person { font-size: 14px; color: #555; margin: 0; }
+    #pre-text {
+      font-size: 14px; color: #444; margin: 4px 0 0;
+      max-width: 480px; line-height: 1.5; text-align: center;
+    }
+    #pre-text:empty { display: none; }
 
     /* Footer — fixed ganz unten */
     #footer {
@@ -123,6 +128,7 @@
       <p id="pre-fach"></p>
       <h2 id="pre-title"></h2>
       <p id="pre-person"></p>
+      <p id="pre-text"></p>
     </div>
 
     <!-- Fixed: Footer ganz unten -->
@@ -211,7 +217,7 @@
       mount.innerHTML = '';
       const el = document.createElement('elevenlabs-convai');
       el.setAttribute('signed-url', signedUrl);
-      el.setAttribute('variant', 'expand');
+      el.setAttribute('variant', 'full');
       mount.appendChild(el);
     }
 
@@ -266,7 +272,8 @@
     }
     document.getElementById('pre-fach').textContent   = cd.fachrichtung || '';
     document.getElementById('pre-title').textContent  = cd.title        || 'Simulation';
-    document.getElementById('pre-person').textContent = cd.person       || '';
+    document.getElementById('pre-person').textContent      = cd.person       || '';
+    document.getElementById('pre-text').textContent        = cd.fall         || '';
 
     if (signedUrl.status === 'rejected') {
       showError('Widget-Fehler', 'Die Simulation konnte nicht gestartet werden.');

@@ -26,23 +26,24 @@
     #screen-done h2 { margin: 0; }
     .btn-back { padding: 10px 20px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 15px; text-decoration: none; color: #333; }
 
-    /* ── Haupt-Layout: Widget fullscreen + fixed Overlays ─── */
-    #screen-main {
-      position: relative;
-      height: 100vh;
-    }
+    /* ── Haupt-Layout ─── */
+    #screen-main { position: relative; height: 100vh; }
 
-    /* 1. Patienteninfo — fixed oben */
+    /* Widget mount — unsichtbar, Widget positioniert sich selbst */
+    #mount { display: none; }
+
+    /* Patienteninfo — fixed über dem Footer */
     #patient-bar {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      bottom: 56px; left: 0; right: 0;
       z-index: 100;
       background: #fff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      border-top: 1px solid #eee;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.07);
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 10px 16px;
+      padding: 10px 20px;
       min-height: 72px;
     }
     #pre-img {
@@ -60,21 +61,7 @@
     #pre-title { font-size: 17px; font-weight: 600; margin: 0 0 2px; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #pre-person { font-size: 13px; color: #555; margin: 0; }
 
-    /* 2. Widget — nimmt Raum zwischen Bar und Footer ein */
-    #widget-panel {
-      position: fixed;
-      top: 72px;
-      bottom: 56px;
-      left: 0; right: 0;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #mount { display: flex; align-items: center; justify-content: center; }
-    elevenlabs-convai { display: block; }
-
-    /* 3. Footer — fixed unten */
+    /* Footer — fixed ganz unten */
     #footer {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -126,7 +113,10 @@
 
   <div id="screen-main" class="screen">
 
-    <!-- Fixed: Patienteninfo oben -->
+    <!-- Widget mount (Widget positioniert sich selbst via ElevenLabs) -->
+    <div id="mount"></div>
+
+    <!-- Fixed: Patienteninfo über Footer -->
     <div id="patient-bar">
       <img id="pre-img" src="" alt="Patientenfoto" />
       <div id="info-text">
@@ -136,14 +126,8 @@
       </div>
     </div>
 
-    <!-- Fullscreen Widget -->
-    <div id="widget-panel">
-      <div id="mount"></div>
-    </div>
-
-    <!-- Fixed: Footer unten -->
+    <!-- Fixed: Footer ganz unten -->
     <div id="footer">
-      <!-- Feedback-URL hier eintragen -->
       <a id="feedback-link" href="#" target="_blank">Feedback geben</a>
       <button id="end-btn">Simulation beenden</button>
     </div>
@@ -229,8 +213,6 @@
       const el = document.createElement('elevenlabs-convai');
       el.setAttribute('signed-url', signedUrl);
       el.setAttribute('variant', 'expand');
-      el.style.width  = '100%';
-      el.style.height = '100%';
       mount.appendChild(el);
     }
 

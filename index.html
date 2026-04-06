@@ -5,151 +5,499 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
   <title>SimVoice</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f5f5; }
+    :root {
+      --blue:       #004071;
+      --blue-mid:   #005a8f;
+      --blue-dark:  #002a4d;
+      --green:      #5DB794;
+      --green-dark: #3a9070;
+      --green-pale: #EAF7F2;
+      --gray:       #BFCFDC;
+      --gray-light: #E8EFF5;
+      --gray-dark:  #7a97b0;
+      --off-white:  #F5F7FA;
+      --white:      #ffffff;
+      --dark:       #0f1923;
+      --mid:        #3d5060;
+      --light:      #7a97b0;
+      --border:     #D8E4EE;
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans:  'DM Sans', system-ui, sans-serif;
+    }
 
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0; padding: 0;
+      font-family: var(--sans);
+      background: var(--off-white);
+      color: var(--dark);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* ── Screens ── */
     .screen { display: none; }
     .screen.active { display: block; }
 
-    /* Loading */
-    #screen-loading { display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #888; }
-    #screen-loading.active { display: flex; }
-    .spinner { width: 36px; height: 36px; border: 3px solid #ddd; border-top-color: #555; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Error / Done */
-    #screen-error, #screen-done { min-height: 100vh; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; text-align: center; }
-    #screen-error.active, #screen-done.active { display: flex; }
-    #screen-error h2 { color: #c0392b; margin: 0; }
-    #screen-error p, #screen-done p { color: #555; margin: 0; max-width: 400px; }
-    #screen-done h2 { margin: 0; }
-    .btn-back { padding: 10px 20px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 15px; text-decoration: none; color: #333; }
-
-    /* ── Haupt-Layout ─── */
-    #screen-main {
-      min-height: 100vh;
+    /* ── Nav (shared) ── */
+    .player-nav {
+      background: rgba(255,255,255,0.96);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      padding-top: 160px;  /* Platz für Widget oben */
-      padding-bottom: 72px; /* Platz für Footer */
-      overflow-y: auto;
-    }
-
-    /* Widget mount — nur DOM-Anker, Widget positioniert sich selbst */
-    #mount { position: absolute; }
-
-    /* Patienteninfo — vertikal gestapelt, zentriert */
-    #patient-bar {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      text-align: center;
-      padding: 0 24px;
-      max-width: 600px;
-      width: 100%;
-    }
-    #pre-img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: #ddd;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.13);
-      margin-bottom: 4px;
-    }
-    #pre-img.no-image { display: none; }
-    #pre-fach { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin: 0; }
-    #pre-title { font-size: 20px; font-weight: 600; margin: 0; color: #1a1a1a; }
-    #pre-person { font-size: 14px; color: #555; margin: 0; }
-    #pre-text {
-      font-size: 14px; color: #444; margin: 4px 0 0;
-      max-width: 480px; line-height: 1.5; text-align: center;
-    }
-    #pre-text:empty { display: none; }
-
-    /* Footer — fixed ganz unten */
-    #footer {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      z-index: 100;
+      justify-content: space-between;
       height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .nav-left { display: flex; align-items: center; gap: 20px; }
+    .nav-logo {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dark);
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--blue); }
+    .nav-sep { width: 1px; height: 20px; background: var(--border); }
+    .nav-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--blue);
+      background: var(--green-pale);
+      padding: 4px 10px;
+    }
+    .nav-back {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--light);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.02em;
+    }
+    .nav-back svg {
+      width: 14px; height: 14px;
+      stroke: currentColor; fill: none; stroke-width: 2;
+    }
+
+    /* ── Loading screen ── */
+    #screen-loading .screen-body {
+      min-height: calc(100vh - 56px);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
-      padding: 0 20px;
-      background: #fff;
-      border-top: 1px solid #eee;
+      flex-direction: column;
+      gap: 20px;
+      background: var(--off-white);
     }
-    #feedback-link {
-      font-size: 14px;
-      color: #555;
-      text-decoration: none;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 1px;
+    .loading-icon {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
-    #feedback-link:hover { color: #222; border-color: #888; }
-    #end-btn {
-      padding: 9px 20px;
-      border-radius: 8px;
-      border: 1px solid #c0392b;
-      background: #fff;
-      color: #c0392b;
-      cursor: pointer;
-      font-size: 14px;
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; font-weight: 400; color: var(--light); letter-spacing: 0.02em; }
+
+    /* ── Error screen ── */
+    #screen-error .screen-body {
+      min-height: calc(100vh - 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+      padding: 48px;
+      text-align: center;
+      background: var(--off-white);
+    }
+    .error-icon {
+      width: 56px; height: 56px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: #b91c1c; font-weight: 700;
+    }
+    #screen-error h2 {
+      font-family: var(--serif);
+      font-size: 24px; font-weight: 600;
+      color: var(--dark); margin: 0;
+    }
+    #screen-error p { font-size: 14px; color: var(--mid); margin: 0; max-width: 400px; line-height: 1.65; }
+
+    /* ── Done screen ── */
+    #screen-done .screen-body {
+      min-height: calc(100vh - 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+      padding: 48px;
+      text-align: center;
+      background: var(--off-white);
+    }
+    .done-icon {
+      width: 56px; height: 56px;
+      background: var(--green-pale);
+      border: 1px solid var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: var(--green-dark); font-weight: 700;
+    }
+    #screen-done h2 {
+      font-family: var(--serif);
+      font-size: 24px; font-weight: 600;
+      color: var(--dark); margin: 0;
+    }
+    #screen-done p { font-size: 14px; color: var(--mid); margin: 0; max-width: 400px; line-height: 1.65; }
+
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px;
+      font-family: var(--sans);
+      font-size: 13px; font-weight: 600; letter-spacing: 0.03em;
+      color: var(--blue);
+      background: var(--white);
+      border: 1px solid var(--border);
+      text-decoration: none; cursor: pointer;
+    }
+    .btn-back svg { stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* ── Main screen ── */
+    #screen-main { min-height: 100vh; }
+
+    /* Widget area */
+    #widget-area {
+      min-height: 160px;
+      background: var(--off-white);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #mount { width: 100%; }
+
+    /* Patient card */
+    .patient-card {
+      background: linear-gradient(160deg, var(--blue) 0%, var(--blue-dark) 100%);
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .patient-card::before {
+      content: '\201C';
+      font-family: var(--serif);
+      font-size: 140px;
+      color: rgba(255,255,255,0.04);
+      position: absolute;
+      top: -30px; right: 24px;
+      line-height: 1;
+      pointer-events: none;
+    }
+    #pre-img {
+      width: 64px; height: 64px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+    }
+    #pre-img.no-image { display: none; }
+    .patient-info { flex: 1; min-width: 0; }
+    #pre-fach {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin: 0 0 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #pre-fach::before {
+      content: '';
+      width: 12px; height: 2px;
+      background: rgba(255,255,255,0.25);
+    }
+    #pre-title {
+      font-family: var(--serif);
+      font-size: 20px; font-weight: 600;
+      color: var(--white);
+      line-height: 1.2;
+      margin: 0 0 2px;
+    }
+    #pre-person {
+      font-size: 13px; font-weight: 400;
+      color: rgba(255,255,255,0.55);
+      margin: 0;
+    }
+    .session-status {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      align-self: flex-start;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .status-text {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
     }
 
-    /* Mikrofon-Overlay */
-    #unlock { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.65); z-index: 9999; }
-    #unlock button { padding: 12px 16px; border-radius: 12px; border: 1px solid #111; background: #fff; cursor: pointer; font-size: 16px; }
+    /* Case description */
+    #case-description {
+      padding: 28px 32px;
+      background: var(--white);
+      border-top: 1px solid var(--border);
+    }
+    #case-description:empty { display: none; }
+    .case-desc-label {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .case-desc-label::before {
+      content: '';
+      width: 16px; height: 2px;
+      background: var(--blue);
+      display: block;
+    }
+    #pre-fall {
+      font-size: 14px;
+      color: var(--mid);
+      line-height: 1.7;
+      margin: 0;
+      max-width: 640px;
+    }
+
+    /* Action bar */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 16px 32px;
+      background: var(--off-white);
+      border-top: 3px solid var(--green);
+    }
+    #feedback-link {
+      font-size: 12px; font-weight: 500;
+      color: var(--light);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #feedback-link svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .action-sep { width: 1px; height: 20px; background: var(--border); }
+    #end-btn {
+      padding: 10px 24px;
+      font-family: var(--sans);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+      border: 1px solid #e8b4b4;
+      background: #fef8f8;
+      color: #b91c1c;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #end-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* ── Mic overlay ── */
+    #unlock {
+      position: fixed; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(15,25,35,0.75);
+      z-index: 9999;
+    }
+    .unlock-card {
+      background: var(--white);
+      padding: 40px 48px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+    }
+    .unlock-icon {
+      width: 56px; height: 56px;
+      background: var(--green-pale);
+      border: 1px solid var(--green);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .unlock-icon svg { width: 24px; height: 24px; stroke: var(--green-dark); fill: none; stroke-width: 2; }
+    .unlock-card h3 {
+      font-family: var(--serif);
+      font-size: 20px; font-weight: 600;
+      color: var(--dark); margin: 0 0 8px;
+    }
+    .unlock-card p { font-size: 13px; color: var(--mid); line-height: 1.6; margin: 0 0 24px; }
+    #unlockBtn {
+      width: 100%;
+      padding: 14px 24px;
+      font-family: var(--sans);
+      font-size: 13px; font-weight: 600; letter-spacing: 0.03em;
+      background: var(--green);
+      color: var(--white);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    #unlockBtn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
   </style>
 </head>
 <body>
 
+  <!-- ── Loading ── -->
   <div id="screen-loading" class="screen active">
-    <div class="spinner"></div>
-    <span>Wird geladen…</span>
+    <nav class="player-nav">
+      <div class="nav-left">
+        <a href="https://www.skillslab-education.de/simvoicecases" class="nav-logo">Skills Lab <span>Education</span></a>
+        <div class="nav-sep"></div>
+        <span class="nav-badge">SimVoice</span>
+      </div>
+      <a href="https://www.skillslab-education.de/simvoicecases" class="nav-back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Zur Fallübersicht
+      </a>
+    </nav>
+    <div class="screen-body">
+      <div class="loading-icon"></div>
+      <span class="loading-text">Simulation wird vorbereitet …</span>
+    </div>
   </div>
 
+  <!-- ── Error ── -->
   <div id="screen-error" class="screen">
-    <h2 id="error-title">Zugriff nicht möglich</h2>
-    <p id="error-msg"></p>
-    <a href="https://www.skillslab-education.de/simvoicecases" class="btn-back">← Zurück zur Übersicht</a>
+    <nav class="player-nav">
+      <div class="nav-left">
+        <a href="https://www.skillslab-education.de/simvoicecases" class="nav-logo">Skills Lab <span>Education</span></a>
+        <div class="nav-sep"></div>
+        <span class="nav-badge">SimVoice</span>
+      </div>
+      <a href="https://www.skillslab-education.de/simvoicecases" class="nav-back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Zur Fallübersicht
+      </a>
+    </nav>
+    <div class="screen-body">
+      <div class="error-icon">&times;</div>
+      <h2 id="error-title">Zugriff nicht möglich</h2>
+      <p id="error-msg"></p>
+      <a href="https://www.skillslab-education.de/simvoicecases" class="btn-back">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Zurück zur Übersicht
+      </a>
+    </div>
   </div>
 
+  <!-- ── Main ── -->
   <div id="screen-main" class="screen">
+    <nav class="player-nav">
+      <div class="nav-left">
+        <a href="https://www.skillslab-education.de/simvoicecases" class="nav-logo">Skills Lab <span>Education</span></a>
+        <div class="nav-sep"></div>
+        <span class="nav-badge">SimVoice</span>
+      </div>
+      <a href="https://www.skillslab-education.de/simvoicecases" class="nav-back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Zur Fallübersicht
+      </a>
+    </nav>
 
-    <!-- Widget mount (Widget positioniert sich selbst via ElevenLabs) -->
-    <div id="mount"></div>
-
-    <!-- Patienteninfo: Bild, Titel, Text vertikal zentriert -->
-    <div id="patient-bar">
-      <img id="pre-img" src="" alt="Patientenfoto" />
-      <p id="pre-fach"></p>
-      <h2 id="pre-title"></h2>
-      <p id="pre-person"></p>
-      <p id="pre-text"></p>
+    <!-- ElevenLabs Widget -->
+    <div id="widget-area">
+      <div id="mount"></div>
     </div>
 
-    <!-- Fixed: Footer ganz unten -->
-    <div id="footer">
-      <a id="feedback-link" href="#" target="_blank">Feedback geben</a>
-      <button id="end-btn">Simulation beenden</button>
+    <!-- Patient info -->
+    <div class="patient-card">
+      <img id="pre-img" src="" alt="Patientenfoto" class="no-image" />
+      <div class="patient-info">
+        <p id="pre-fach"></p>
+        <h2 id="pre-title">Simulation</h2>
+        <p id="pre-person"></p>
+      </div>
+      <div class="session-status">
+        <div class="status-dot"></div>
+        <span class="status-text">Aktiv</span>
+      </div>
     </div>
 
+    <!-- Fall description -->
+    <div id="case-description">
+      <p class="case-desc-label">Fallbeschreibung</p>
+      <p id="pre-fall"></p>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+      <a id="feedback-link" href="#" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Feedback geben
+      </a>
+      <div class="action-sep"></div>
+      <button id="end-btn">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        Simulation beenden
+      </button>
+    </div>
   </div>
 
+  <!-- ── Done ── -->
   <div id="screen-done" class="screen">
-    <h2>Simulation abgeschlossen</h2>
-    <p>Die Sitzung wurde gespeichert.</p>
-    <a href="https://www.skillslab-education.de/simvoicecases" class="btn-back">← Zurück zur Übersicht</a>
+    <nav class="player-nav">
+      <div class="nav-left">
+        <a href="https://www.skillslab-education.de/simvoicecases" class="nav-logo">Skills Lab <span>Education</span></a>
+        <div class="nav-sep"></div>
+        <span class="nav-badge">SimVoice</span>
+      </div>
+      <a href="https://www.skillslab-education.de/simvoicecases" class="nav-back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Zur Fallübersicht
+      </a>
+    </nav>
+    <div class="screen-body">
+      <div class="done-icon">&#10003;</div>
+      <h2>Simulation abgeschlossen</h2>
+      <p>Die Sitzung wurde erfolgreich gespeichert. Du kannst die Simulation jederzeit erneut starten.</p>
+      <a href="https://www.skillslab-education.de/simvoicecases" class="btn-back">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Zurück zur Fallübersicht
+      </a>
+    </div>
   </div>
 
+  <!-- ── Mic overlay ── -->
   <div id="unlock">
-    <button id="unlockBtn">Mikrofon aktivieren</button>
+    <div class="unlock-card">
+      <div class="unlock-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </div>
+      <h3>Mikrofon benötigt</h3>
+      <p>Für die Simulation benötigen wir Zugriff auf dein Mikrofon. Bitte erlaube den Zugriff im nächsten Dialog.</p>
+      <button id="unlockBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        Mikrofon aktivieren
+      </button>
+    </div>
   </div>
 
   <script>
@@ -157,7 +505,6 @@
     const WIX_BASE   = 'https://www.skillslab-education.de/_functions';
     const WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
 
-    // Feedback-URL hier eintragen (oder später ergänzen)
     const FEEDBACK_URL = '#';
     document.getElementById('feedback-link').href = FEEDBACK_URL;
 
@@ -273,10 +620,17 @@
     } else {
       imgEl.classList.add('no-image');
     }
-    document.getElementById('pre-fach').textContent   = cd.fachrichtung || '';
-    document.getElementById('pre-title').textContent  = cd.title        || 'Simulation';
-    document.getElementById('pre-person').textContent      = cd.person       || '';
-    document.getElementById('pre-text').textContent        = cd.fall         || '';
+    document.getElementById('pre-fach').textContent  = cd.fachrichtung || '';
+    document.getElementById('pre-title').textContent = cd.title        || 'Simulation';
+    document.getElementById('pre-person').textContent = cd.person      || '';
+
+    const fallEl = document.getElementById('pre-fall');
+    const descEl = document.getElementById('case-description');
+    if (cd.fall) {
+      fallEl.textContent = cd.fall;
+    } else {
+      descEl.style.display = 'none';
+    }
 
     if (signedUrl.status === 'rejected') {
       showError('Widget-Fehler', 'Die Simulation konnte nicht gestartet werden.');

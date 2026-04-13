@@ -503,8 +503,7 @@
     const WIX_BASE   = 'https://www.skillslab-education.de/_functions';
     const WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
 
-    const FEEDBACK_URL = '#';
-    document.getElementById('feedback-link').href = FEEDBACK_URL;
+    // feedbackUrl wird via getCaseData aus SimVoiceCases (Feld feedbackUrl, je Fall) geladen
 
     const screens = {
       loading: document.getElementById('screen-loading'),
@@ -621,6 +620,10 @@
     document.getElementById('pre-fach').textContent  = cd.fachrichtung || '';
     document.getElementById('pre-title').textContent = cd.title        || 'Simulation';
     document.getElementById('pre-person').textContent = cd.person      || '';
+
+    console.log('[SimVoice] getCaseData response:', JSON.stringify(cd));
+    console.log('[SimVoice] feedbackUrl value:', cd.feedbackUrl, 'type:', typeof cd.feedbackUrl);
+    document.getElementById('feedback-link').href = cd.feedbackUrl || '#';
 
     const fallEl = document.getElementById('pre-fall');
     const descEl = document.getElementById('case-description');

@@ -621,8 +621,6 @@
     document.getElementById('pre-title').textContent = cd.title        || 'Simulation';
     document.getElementById('pre-person').textContent = cd.person      || '';
 
-    console.log('[SimVoice] getCaseData response:', JSON.stringify(cd));
-    console.log('[SimVoice] feedbackUrl value:', cd.feedbackUrl, 'type:', typeof cd.feedbackUrl);
     document.getElementById('feedback-link').href = cd.feedbackUrl || '#';
 
     const fallEl = document.getElementById('pre-fall');
